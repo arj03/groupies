@@ -1,0 +1,51 @@
+/*
+ * SPDX-FileCopyrightText: 2021 Anders Rune Jensen <arj03@protonmail.ch>
+ *
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
+html {
+  font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,NotoColorEmoji;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  height: 100%;
+}
+
+body {
+  height: 100%;
+}
+
+#menu {
+  width: 15%;
+  height: 95%;
+  background-color:#fff;
+  position:fixed !important;
+  z-index:1;
+  overflow:auto;
+
+  background-image: url("svendsolar.jpg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom;
+}
+
+#main {
+  margin-left: 15%;
+  padding-left: 30px;
+  height: 100%;
+}
+
+.link {
+  cursor: pointer;
+}
+
+ul.dashed {
+  list-style-type: square;
+  margin-left: 0;
+  padding-left: 30px;
+}
+
+textarea.source {
+  width: 95%;
+  height: 500px;
+}

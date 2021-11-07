@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Groupies</title>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <link rel="stylesheet" type="text/css" href="index.css">
+  </head>
+  <body>
+    <div id="menu">
+      <b>Your ID</b>
+      <div>
+        {{ id.substring(0, 12) }}
+      </div>
+
+      <br>
+
+      <b>Groups</b><span style="padding-left: 5px;" class="link" v-on:click="newGroup()" title="Create a new group">🌱</span>
+      <ul v-for="group in groups" class="dashed">
+        <li class="link">
+          <span v-on:click="openGroup(group)" title="Open group">{{ group.title }}</span>
+          <span style="padding-left: 5px;" class="link" v-on:click="copyKey(group)" title="Copy key to clipboard">📄</span>
+        </li>
+      </ul>
+
+      <br>
+
+      <b>Peers</b>
+      <div v-for="peer in peers">
+        {{ (peer.name || peer.data.name || peer.data.key).substring(0, 12) }}
+      </div>      
+    </div>
+    <div id="main">
+      <div id="app"></div>
+    </div>
+  </body>
+  <script src="vue.min.js"></script>
+  <script src="index.js"></script>
+</html>
