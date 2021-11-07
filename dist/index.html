@@ -24,6 +24,18 @@
 
       <br>
 
+      <b>Tools</b>
+      <ul class="dashed">
+        <li class="link">
+          <span v-on:click="addGroupKey()" title="Add group key">Add group key</span>
+        </li>
+        <li class="link">
+          <span v-on:click="dumpDB()" title="Dump DB">Dump DB</span>
+        </li>
+      </ul>
+
+      <br>
+
       <b>Peers</b>
       <div v-for="peer in peers">
         {{ (peer.name || peer.data.name || peer.data.key).substring(0, 12) }}

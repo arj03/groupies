@@ -76,11 +76,16 @@ const menu = new Vue({
   },
 
   methods: {
+    dumpDB,
     openGroup: function(group) {
       new Vue(chatApp(pull, ssbSingleton, group)).$mount("#app")
     },
     copyKey: function(group) {
       navigator.clipboard.writeText(group.key)
+    },
+    addGroupKey: function() {
+      const addGroupKey = require('./add-group-key')
+      new Vue(addGroupKey(ssbSingleton, getGroupKeysFeed)).$mount("#app")
     },
     newGroup: function() {
       const groupKey = crypto.randomBytes(32)
@@ -158,6 +163,8 @@ function monkeyPatchBox2Libs() {
 }
 
 function ssbReady(SSB) {
+  SSB.net.ebt.registerFormat(require('ssb-ebt/formats/bendy-butt'))
+
   monkeyPatchBox2Libs()
 
   // We can't encrypt the seed to ourself with a own DM key generated
@@ -194,12 +201,9 @@ function ssbReady(SSB) {
         return msg.value.content.recps && msg.value.content.recps[0] === SSB.net.id
       }),
       pull.drain((msg) => {
-        console.log("key msg", msg.value.content)
         const { key, id } = msg.value.content
-        if (key) {
-          console.log("got private key")
+        if (key)
           SSB.net.box2.addGroupKey(id, Buffer.from(key, 'hex'))
-        }
       }, () => { box2KeysReady(SSB) })
     )
   })
@@ -207,7 +211,7 @@ function ssbReady(SSB) {
 
 function box2KeysReady(SSB) {
   //console.log("got sbot", SSB)
-  dumpDB()
+  //dumpDB()
 
   menu.id = SSB.net.id
 
@@ -265,9 +269,15 @@ function box2KeysReady(SSB) {
     }
   }, 1000)
 
-  // find all meta feeds & children and replicate those
-  SSB.net.ebt.registerFormat(require('ssb-ebt/formats/bendy-butt'))
+  // main feed replicated on rpc connect
+  SSB.net.on('rpc:connect', function (rpc, isClient) {
+    if (rpc.id !== roomKey) {
+      console.log("request connect", rpc.id)
+      SSB.net.ebt.request(rpc.id, true)
+    }
+  })
 
+  // find all meta feeds & children and replicate those
   pull(
     SSB.db.query(
       where(type('metafeed/announce')),
@@ -280,6 +290,7 @@ function box2KeysReady(SSB) {
       // similar to ack self, we must ack own feeds!
       SSB.net.ebt.request(metafeed, true)
 
+      // FIXME: this doesn't work on reindex!
       pull(
         SSB.db.query(
           where(author(metafeed)),
@@ -288,7 +299,7 @@ function box2KeysReady(SSB) {
         ),
         pull.drain((msg) => {
           const { subfeed, feedpurpose } = msg.value.content
-          if (feedpurpose !== 'main') { // special
+          if (feedpurpose && feedpurpose !== 'main') { // special
             console.log("replicating subfeed", subfeed)
             // similar to ack self, we must ack own feeds!
             SSB.net.ebt.request(subfeed, true)
