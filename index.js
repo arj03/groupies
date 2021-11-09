@@ -35,8 +35,10 @@ ssbSingleton.setup("/.groupies", config, extraModules)
 
 ssbSingleton.getSimpleSSBEventually(
   (err, SSB) => {
-    if (err) console.error(err)
-    else ssbReady(SSB)
+    if (err) return console.error(err)
+
+    SSB.ebt.registerFormat(require('ssb-ebt/formats/bendy-butt'))
+    setupBox2(SSB)
   }
 )
 
@@ -159,9 +161,7 @@ function monkeyPatchBox2Libs() {
   }
 }
 
-function ssbReady(SSB) {
-  SSB.ebt.registerFormat(require('ssb-ebt/formats/bendy-butt'))
-
+function setupBox2(SSB) {
   monkeyPatchBox2Libs()
 
   // We can't encrypt the seed to ourself with a own DM key generated
@@ -201,12 +201,14 @@ function ssbReady(SSB) {
         const { key, id } = msg.value.content
         if (key)
           SSB.box2.addGroupKey(id, Buffer.from(key, 'hex'))
-      }, () => { box2KeysReady(SSB) })
+      },
+      () => { setupApp(SSB) }
+     )
     )
   })
 }
 
-function box2KeysReady(SSB) {
+function setupApp(SSB) {
   //console.log("got sbot", SSB)
   //dumpDB()
 
