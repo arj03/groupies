@@ -4,7 +4,7 @@ module.exports = function (pull, ssbSingleton, group) {
   function getChatFeed(SSB, cb) {
     if (chatFeed !== null) return cb(null, chatFeed)
 
-    SSB.net.metafeeds.findOrCreate((err, metafeed) => {
+    SSB.metafeeds.findOrCreate((err, metafeed) => {
       const details = {
         feedpurpose: 'groupchat',
         feedformat: 'classic',
@@ -14,9 +14,12 @@ module.exports = function (pull, ssbSingleton, group) {
         }
       }
       
-      SSB.net.metafeeds.findOrCreate(
+      SSB.metafeeds.findOrCreate(
         metafeed,
-        (f) => f.feedpurpose === details.feedpurpose && f.groupId === group.id,
+        (f) => {
+          return f.feedpurpose === details.feedpurpose &&
+                 f.metadata.groupId === group.id
+        },
         details,
         (err, feed) => {
           if (err) return cb(err)
@@ -79,7 +82,7 @@ module.exports = function (pull, ssbSingleton, group) {
       },
 
       render: function(err, SSB) {
-        const { where, type, live, toPullStream } = SSB.dbOperators
+        const { where, type, live, toPullStream } = SSB.db.operators
 
         pull(
           SSB.db.query(

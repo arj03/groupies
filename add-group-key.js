@@ -26,11 +26,11 @@ module.exports = function (ssbSingleton, getGroupKeysFeed) {
                 type: 'groupkey',
                 key: this.groupKey.toString('hex'),
                 id: groupId,
-                recps: [SSB.net.id]
+                recps: [SSB.id]
               }, (err, msg) => {
                 if (err) return console.error(err)
 
-                SSB.net.box2.addGroupKey(groupId, this.groupKey)
+                SSB.box2.addGroupKey(groupId, this.groupKey)
                 SSB.db.reindexEncrypted()
                 alert('Key added!')
               })
