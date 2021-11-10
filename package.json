@@ -11,11 +11,12 @@
     "url": "git+https://github.com/arj03/groupies.git"
   },
   "author": "Anders Rune Jensen <arj03@protonmail.ch>",
-  "license": "Beerware"
+  "license": "AGPL-3.0",
   "dependencies": {
     "ssb-browser-core": "arj03/ssb-browser-core#vanilla",
     "ssb-db2": "^2.7.1",
     "ssb-db2-box2": "^0.4.0",
+    "ssb-keys-mnemonic": "^1.0.1",
     "ssb-meta-feeds": "^0.28.0",
     "vue": "^2.6.14"
   },

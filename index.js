@@ -7,6 +7,11 @@ function extraModules(secretStack) {
   return secretStack
     .use(require("ssb-meta-feeds"))
     .use(require("ssb-db2-box2"))
+    .use({
+      init: function (sbot, config) {
+        sbot.db.registerIndex(require('ssb-db2/indexes/about-self'))
+      }
+    })
 }
 
 let config = {
@@ -115,6 +120,10 @@ const menu = new Vue({
           })
         }
       )
+    },
+    openProfile: function() {
+      const profile = require('./profile')
+      new Vue(profile(SSB.id)).$mount("#app")
     },
   }
 })
