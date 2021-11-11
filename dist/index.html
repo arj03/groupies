@@ -7,9 +7,9 @@
   </head>
   <body>
     <div id="menu">
-      <b>Your ID</b>
+      <b>Profile</b>
       <div>
-        {{ id.substring(0, 12) }}
+        <ssb-profile-link :feed="id"></ssb-profile-link>
       </div>
 
       <br>
@@ -30,9 +30,6 @@
           <span v-on:click="addGroupKey()" title="Add group key">Add group key</span>
         </li>
         <li class="link">
-          <span v-on:click="openProfile()" title="Profile">Profile</span>
-        </li>
-        <li class="link">
           <span v-on:click="dumpDB()" title="Dump DB">Dump DB</span>
         </li>
       </ul>
@@ -41,7 +38,7 @@
 
       <b>Peers</b>
       <div v-for="peer in peers">
-        {{ (peer.name || peer.data.name || peer.data.key).substring(0, 12) }}
+        <ssb-profile-link :feed="peer.data.key"></ssb-profile-link>
       </div>      
     </div>
     <div id="main">

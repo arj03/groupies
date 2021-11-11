@@ -68,6 +68,9 @@ function getGroupKeysFeed(SSB, cb) {
   })
 }
 
+// load ssb-profile-link
+require('./ssb-profile-link')
+
 const menu = new Vue({
   el: '#menu',
 
@@ -276,14 +279,6 @@ function setupApp(SSB) {
       })
     }
   }, 1000)
-
-  // main feed replicated on rpc connect
-  SSB.on('rpc:connect', function (rpc, isClient) {
-    if (rpc.id !== roomKey) {
-      console.log("request connect", rpc.id)
-      SSB.ebt.request(rpc.id, true)
-    }
-  })
 
   // find all meta feeds & children and replicate those
   pull(

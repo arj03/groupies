@@ -26,6 +26,30 @@ body {
   height: 100%;
 }
 
+.avatarcontainer {
+  height: 30px;
+  padding: 3px;  
+}
+
+.avatarlink {
+  cursor: pointer;
+  position: absolute;
+}
+
+.avatarlink > .img {
+  width: 30px;
+  height: 30px;
+  padding-right: 5px;
+}
+
+.avatarlink > .name {
+  position: absolute;
+  top: 5px;
+  display: block;
+  height: 30px;
+  left: 35px;
+}
+
 a {
   color: #000;
   text-decoration: underline;
@@ -102,8 +126,9 @@ ul.dashed {
   flex-grow: 4;
 }
 
-#profile > span > .description h2 {
-  margin-top: 0;
+#profile > span > .description > .feedId {
+  margin-bottom: 0.5rem;
+  font-size: .8rem;
 }
 
 #profile > h2 {
