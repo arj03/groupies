@@ -37,9 +37,14 @@ module.exports = function (pull, ssbSingleton, group) {
       <h2>Chat</h2>
       <input type='text' v-model="message" @keyup.enter="post()">
       <button v-on:click="post">Send</button>
-      <div v-for="msg in messages">
-       <span>{{ msg.user }}:</span>
-       <span>{{ msg.text }}</span>
+      <div class="chatmessage" v-for="msg in messages">
+       <div style="width: 100px;">
+         <ssb-profile-link :feed="msg.user"></ssb-profile-link>
+       </div>
+       <div>
+         <div>{{ msg.text }}</div>
+         <div class="timestamp">{{ msg.timestamp }}</div>
+       </div>
       </div>
     </div>`,
 
@@ -81,8 +86,36 @@ module.exports = function (pull, ssbSingleton, group) {
         )
       },
 
-      render: function(err, SSB) {
-        const { where, type, live, toPullStream } = SSB.db.operators
+      render: async function(err, SSB) {
+        const { where, or, type, live,
+                toPromise, toPullStream } = SSB.db.operators
+
+        const metafeedMsgs = await SSB.db.query(
+          where(
+            or(
+              type('metafeed/add/existing'),
+              type('metafeed/add/derived')
+            )
+          ),
+          toPromise()
+        )
+
+        const metafeeds = {}
+        metafeedMsgs.forEach(msg => {
+          const msgVal = msg.value
+          const content = msgVal.content
+          const metafeed = metafeeds[msgVal.author] || {}
+          const groupId = content.groupId || ''
+          metafeed[content.feedpurpose + groupId] = content.subfeed
+          metafeeds[msgVal.author] = metafeed
+        })
+
+        const chatToMetafeed = {}
+        for (let metafeed in metafeeds) {
+          const chatId = metafeeds[metafeed]['groupchat' + group.id]
+          if (chatId)
+            chatToMetafeed[chatId] = metafeeds[metafeed]
+        }
 
         pull(
           SSB.db.query(
@@ -90,11 +123,18 @@ module.exports = function (pull, ssbSingleton, group) {
             live({ old: true }),
             toPullStream()
           ),
-          pull.filter(msg => msg.value.content.id === group.id), // FIXME 
+          pull.filter(msg => msg.value.content.id === group.id), // FIXME slow
           pull.drain((msg) => {
+            let { timestamp, author, content } = msg.value
+
+            const authorChat = chatToMetafeed[author]
+            if (authorChat)
+              author = authorChat['main']
+
             this.messages.push({
-              user: msg.value.author.substring(0,5),
-              text: msg.value.content.message
+              timestamp: (new Date(timestamp)).toLocaleString(),
+              user: author,
+              text: content.message
             })
           })
         )

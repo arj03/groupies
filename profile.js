@@ -408,10 +408,8 @@ module.exports = function (feedId) {
       renderProfile() {
         var self = this
 
-        ssbSingleton.getSSBEventually(
-          -1,
+        ssbSingleton.getSimpleSSBEventually(
           () => { return self.componentStillLoaded },
-          (SSB) => { return SSB && SSB.db },
           self.renderFollowsCallback
         )
 

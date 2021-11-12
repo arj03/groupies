@@ -22,18 +22,6 @@ Vue.component('ssb-profile-link', {
   },
 
   methods: {
-    renderProfile: function(profile) {
-      var self = this
-      ssbSingleton.getSSBEventually(
-        -1,
-        () => { return self.componentStillLoaded },
-        (SSB) => { return SSB },
-        (err, SSB) => {
-          self.renderProfileCallback(err, SSB, profile)
-        }
-      )
-    },
-
     renderProfileCallback: function (err, SSB, existingProfile) {
       const self = this
       const profile = existingProfile || SSB.db.getIndex("aboutSelf").getProfile(self.feed)
@@ -43,7 +31,7 @@ Vue.component('ssb-profile-link', {
 
       if (self.feed == SSB.id)
         self.name = 'You'
-      else
+      else if (profile.name !== '')
         self.name = profile.name
   
       if (profile.imageURL) self.imgURL = profile.imageURL
@@ -73,10 +61,8 @@ Vue.component('ssb-profile-link', {
       // set a default image while we wait for an SSB.
       self.imgURL = "noavatar.svg"
 
-      ssbSingleton.getSSBEventually(
-        -1,
+      ssbSingleton.getSimpleSSBEventually(
         () => { return self.componentStillLoaded },
-        (SSB) => { return SSB },
         self.loadBlocking
       )
 
@@ -94,6 +80,8 @@ Vue.component('ssb-profile-link', {
   },
 
   created: function() {
+    this.name = this.feed.substr(0,5)
+
     this.componentStillLoaded = true
     this.refresh()
   },
