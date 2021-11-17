@@ -71,6 +71,31 @@ function getGroupKeysFeed(SSB, cb) {
 // load ssb-profile-link
 require('./ssb-profile-link')
 
+let afterGroupSave = () => {}
+
+function getChatFeed(SSB, group, cb) {
+  SSB.metafeeds.findOrCreate((err, metafeed) => {
+    const details = {
+      feedpurpose: 'groupchat',
+      feedformat: 'classic',
+      metadata: {
+        groupId: group.id,
+        recps: [group.id]
+      }
+    }
+
+    SSB.metafeeds.findOrCreate(
+      metafeed,
+      (f) => {
+        return f.feedpurpose === details.feedpurpose &&
+          f.metadata.groupId === group.id
+      },
+      details,
+      cb
+    )
+  })
+}
+
 const menu = new Vue({
   el: '#menu',
 
@@ -78,17 +103,53 @@ const menu = new Vue({
     return {
       id: '',
       groups: [],
-      peers: []
+      peers: [],
+
+      // group dialog
+      groupKey: '',
+      showGroupEdit: false,
+      groupSaveText: 'Create group',
+      groupTitle: '',
+      groupBGColor: '',
     }
   },
 
   methods: {
     dumpDB,
     openGroup: function(group) {
-      new Vue(chatApp(pull, ssbSingleton, group)).$mount("#app")
+      new Vue(chatApp(pull, ssbSingleton, group, getChatFeed)).$mount("#app")
     },
-    copyKey: function(group) {
-      navigator.clipboard.writeText(group.key)
+    editGroupConfig: function(group) {
+      afterGroupSave = () => { this.showGroupEdit = false }
+
+      this.groupKey = group.key
+      this.groupSaveText = 'Save group config'
+      this.showGroupEdit = true
+    },
+    copyGroupKey: function() {
+      navigator.clipboard.writeText(this.groupKey)
+    },
+    saveGroupConfig: function() {
+      group = { id: this.groupKey + '.groupies' }
+
+      const groupKey = Buffer.from(this.groupKey, 'hex')
+      SSB.box2.addGroupKey(group.id, groupKey)
+
+      getChatFeed(SSB, group, (err, chatFeed) => {
+        if (err) return console.error("failed to get chat feed", err)
+
+        SSB.db.publishAs(chatFeed.keys, {
+          type: 'groupconfig',
+          id: group.id,
+          title: this.groupTitle,
+          bgColor: this.groupBGColor,
+          recps: [group.id]
+        }, (err, msg) => {
+          if (err) return console.log(err)
+
+          afterGroupSave()
+        })
+      })
     },
     addGroupKey: function() {
       const addGroupKey = require('./add-group-key')
@@ -96,33 +157,38 @@ const menu = new Vue({
     },
     newGroup: function() {
       const groupKey = crypto.randomBytes(32)
-      const title = 'encrypted chat'
 
-      const groupId = groupKey.toString('hex') + '.groupies'
+      this.groupKey = groupKey.toString('hex')
+      this.groupSaveText = 'Create group'
+      this.showGroupEdit = true
 
-      ssbSingleton.getSimpleSSBEventually(
-        (err, SSB) => {
-          if (err) return console.error(err)
+      afterGroupSave = () => {
+        const groupId = this.groupKey + '.groupies'
 
-          getGroupKeysFeed(SSB, (err, keysFeed) => {
-            SSB.db.publishAs(keysFeed.keys, {
-              type: 'groupkey',
-              key: groupKey.toString('hex'),
-              id: groupId,
-              recps: [SSB.id]
-            }, (err, msg) => {
-              if (err) return console.error(err)
+        ssbSingleton.getSimpleSSBEventually(
+          (err, SSB) => {
+            if (err) return console.error(err)
 
-              SSB.box2.addGroupKey(groupId, groupKey)
-              
-              new Vue(
-                chatApp(pull, ssbSingleton,
-                        { key: groupKey, id: groupId, title })
-              ).$mount("#app")
+            getGroupKeysFeed(SSB, (err, keysFeed) => {
+              SSB.db.publishAs(keysFeed.keys, {
+                type: 'groupkey',
+                key: this.groupKey,
+                id: groupId,
+                recps: [SSB.id]
+              }, (err, msg) => {
+                if (err) return console.error(err)
+
+                this.showGroupEdit = false
+ 
+                new Vue(
+                  chatApp(pull, ssbSingleton,
+                          { key: groupKey, id: groupId }, getChatFeed)
+                ).$mount("#app")
+              })
             })
-          })
-        }
-      )
+          }
+        )
+      }
     },
     openProfile: function() {
       const profile = require('./profile')
@@ -132,14 +198,15 @@ const menu = new Vue({
 })
 
 function dumpDB() {
-  const { toPullStream } = SSB.db.operators
+  const { where, author, toPullStream } = SSB.db.operators
 
   pull(
     SSB.db.query(
+      where(author('@0PiWdHohzPjNnQmr5e7w1DseATXHkvH9ndfE7yLrLf0=.ed25519')),
       toPullStream()
     ),
     pull.drain((msg) => {
-      console.log(`author ${msg.value.author}, seq: ${msg.value.sequence}, content: ${JSON.stringify(msg.value.content, null, 2)}`)
+      console.log(`author ${msg.value.author}, seq: ${msg.value.sequence}, content: ${JSON.stringify(msg, null, 2)}`)
       // , content: ${JSON.stringify(msg.value.content, null, 2)}
     })
   )
@@ -238,12 +305,27 @@ function setupApp(SSB) {
     ),
     pull.drain((msg) => {
       const { key, id } = msg.value.content
-      menu.groups.push({
+      const group = {
         key, id, title: 'encrypted chat'
-      })
+      }
+      menu.groups.push(group)
+
+      pull(
+        SSB.db.query(
+          where(type('groupconfig')),
+          live({ old: true }),
+          toPullStream()
+        ),
+        pull.filter(msg => {
+          return msg.value.content.id === id
+        }),
+        pull.drain((msg) => {
+          group.title = msg.value.content.title
+        })
+      )
     })
   )
-  
+
   // auto connect to room
   const roomKey = '@oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y=.ed25519'
   const room = 'wss:between-two-worlds.dk:444~shs:oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y='

@@ -1,40 +1,21 @@
-module.exports = function (pull, ssbSingleton, group) {
+module.exports = function (pull, ssbSingleton, group, getChatFeedHelper) {
   let chatFeed = null
 
   function getChatFeed(SSB, cb) {
     if (chatFeed !== null) return cb(null, chatFeed)
 
-    SSB.metafeeds.findOrCreate((err, metafeed) => {
-      const details = {
-        feedpurpose: 'groupchat',
-        feedformat: 'classic',
-        metadata: {
-          groupId: group.id,
-          recps: [group.id]
-        }
-      }
-      
-      SSB.metafeeds.findOrCreate(
-        metafeed,
-        (f) => {
-          return f.feedpurpose === details.feedpurpose &&
-                 f.metadata.groupId === group.id
-        },
-        details,
-        (err, feed) => {
-          if (err) return cb(err)
+    getChatFeedHelper(SSB, group, (err, feed) => {
+      if (err) return cb(err)
 
-          chatFeed = feed
-          cb(null, chatFeed)
-        }
-      )
+      chatFeed = feed
+      cb(null, chatFeed)
     })
   }
 
   return {
     template: `
     <div id="app">
-      <h2>Chat</h2>
+      <h2>Chat {{ title }}</h2>
       <input type='text' v-model="message" @keyup.enter="post()">
       <button v-on:click="post">Send</button>
       <div class="chatmessage" v-for="msg in messages">
@@ -50,6 +31,7 @@ module.exports = function (pull, ssbSingleton, group) {
 
     data: function() {
       return {
+        title: '',
         message: '',
         messages: [],
         componentStillLoaded: false,
@@ -69,7 +51,8 @@ module.exports = function (pull, ssbSingleton, group) {
               SSB.db.publishAs(chatFeed.keys, {
                 type: 'groupchat',
                 id: group.id,
-                message: this.message
+                message: this.message,
+                recps: [group.id]
               }, (err, msg) => {
                 if (err) console.log(err)
                 else this.message = ''
@@ -119,6 +102,21 @@ module.exports = function (pull, ssbSingleton, group) {
 
         pull(
           SSB.db.query(
+            where(type('groupconfig')),
+            live({ old: true }),
+            toPullStream()
+          ),
+          pull.filter(msg => {
+            return msg.value.content.id === group.id
+          }),
+          pull.drain((msg) => {
+            this.title = msg.value.content.title
+            document.title = 'Groupies chat - ' + this.title
+          })
+        )
+
+        pull(
+          SSB.db.query(
             where(type('groupchat')),
             live({ old: true }),
             toPullStream()
@@ -144,7 +142,7 @@ module.exports = function (pull, ssbSingleton, group) {
     created: function () {
       this.componentStillLoaded = true
 
-      document.title = 'Group chat:' + group.title
+      document.title = 'Groupies chat'
 
       this.load()
     },
