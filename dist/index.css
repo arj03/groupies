@@ -31,28 +31,19 @@ body {
   height: 100%;
 }
 
-.avatarcontainer {
-  height: 30px;
-  padding: 3px;  
-}
-
 .avatarlink {
   cursor: pointer;
-  position: absolute;
 }
 
 .avatarlink > .img {
   width: 30px;
   height: 30px;
-  padding-right: 5px;
 }
 
 .avatarlink > .name {
-  position: absolute;
-  top: 5px;
+  font-size: .8rem;
+  margin-top: -5px;
   display: block;
-  height: 30px;
-  left: 35px;
 }
 
 .chatmessage {

@@ -17,11 +17,13 @@ module.exports = function (ssbSingleton, group,
   return {
     template: `
     <div id="app">
-      <h2>Chat {{ title }} <button v-on:click="editGroup" class="clickButton">Edit group</button></h2>
-      <input type='text' v-model="message" @keyup.enter="post()">
-      <button v-on:click="post">Send</button>
+      <h2>Chat {{ title }} <button v-on:click="editGroup" class="clickButton" style="float: right;">Edit group</button></h2>
+      <div style="padding-bottom: 1rem;">
+        <input type='text' v-model="message" @keyup.enter="post()">
+        <button v-on:click="post">Send</button>
+      </div>
       <div class="chatmessage" v-for="msg in messages">
-       <div style="width: 100px;">
+       <div style="min-width: 3rem;">
          <ssb-profile-link :feed="msg.user"></ssb-profile-link>
        </div>
        <div>
