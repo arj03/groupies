@@ -3,6 +3,9 @@ const pull = require('pull-stream')
 const hkdf = require('futoin-hkdf')
 const crypto = require('crypto')
 
+const { getGroupKeysFeed, getChatFeed, dumpDB } = require('./helpers')
+const { monkeyPatchBox2Libs } = require('./browser-hack')
+
 function extraModules(secretStack) {
   return secretStack
     .use(require("ssb-meta-feeds"))
@@ -49,52 +52,10 @@ ssbSingleton.getSimpleSSBEventually(
 
 const chatApp = require('./chat')
 
-function getGroupKeysFeed(SSB, cb) {
-  SSB.metafeeds.findOrCreate((err, metafeed) => {
-    const details = {
-      feedpurpose: 'groupkeys',
-      feedformat: 'classic',
-      metadata: {
-        recps: [SSB.id]
-      }
-    }
-    
-    SSB.metafeeds.findOrCreate(
-      metafeed,
-      (f) => f.feedpurpose === details.feedpurpose,
-      details,
-      cb
-    )
-  })
-}
-
-// load ssb-profile-link
+// load ssb-profile-link component
 require('./ssb-profile-link')
 
 let afterGroupSave = () => {}
-
-function getChatFeed(SSB, group, cb) {
-  SSB.metafeeds.findOrCreate((err, metafeed) => {
-    const details = {
-      feedpurpose: 'groupchat',
-      feedformat: 'classic',
-      metadata: {
-        groupId: group.id,
-        recps: [group.id]
-      }
-    }
-
-    SSB.metafeeds.findOrCreate(
-      metafeed,
-      (f) => {
-        return f.feedpurpose === details.feedpurpose &&
-          f.metadata.groupId === group.id
-      },
-      details,
-      cb
-    )
-  })
-}
 
 const menu = new Vue({
   el: '#menu',
@@ -205,49 +166,6 @@ const menu = new Vue({
   }
 })
 
-function dumpDB() {
-  const { where, author, toPullStream } = SSB.db.operators
-
-  pull(
-    SSB.db.query(
-      where(author('@0PiWdHohzPjNnQmr5e7w1DseATXHkvH9ndfE7yLrLf0=.ed25519')),
-      toPullStream()
-    ),
-    pull.drain((msg) => {
-      console.log(`author ${msg.value.author}, seq: ${msg.value.sequence}, content: ${JSON.stringify(msg, null, 2)}`)
-      // , content: ${JSON.stringify(msg.value.content, null, 2)}
-    })
-  )
-}
-
-function monkeyPatchBox2Libs() {
-  Uint8Array.prototype.equals = function equals (b) {
-    let a = this
-
-    if (a === b) {
-      return true
-    }
-
-    if (a.byteLength !== b.byteLength) {
-      return false
-    }
-
-    for (let i = 0; i < a.byteLength; i++) {
-      if (a[i] !== b[i]) {
-        return false
-      }
-    }
-
-    return true
-  }
-
-  Uint8Array.prototype.copy = function equals (b) {
-    let a = this
-    for (let i = 0; i < a.length; ++i)
-      b[i] = a[i]
-  }
-}
-
 function setupBox2(SSB) {
   monkeyPatchBox2Libs()
 
@@ -296,9 +214,6 @@ function setupBox2(SSB) {
 }
 
 function setupApp(SSB) {
-  //console.log("got sbot", SSB)
-  //dumpDB()
-
   menu.id = SSB.id
 
   const { where, type, author, slowEqual, live,
@@ -360,7 +275,7 @@ function setupApp(SSB) {
     })
   )
 
-  // auto reconnect
+  // auto reconnect to room
   setInterval(() => {
     if (menu.peers.length === 0) {
       SSB.conn.connect(room, {
