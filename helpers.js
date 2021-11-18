@@ -1,3 +1,5 @@
+const pull = require('pull-stream')
+
 function getMetaFeed(SSB, details, check, cb) {
   SSB.metafeeds.findOrCreate((err, metafeed) => {
     SSB.metafeeds.findOrCreate(
@@ -51,7 +53,7 @@ module.exports = {
 
     pull(
       SSB.db.query(
-        where(author('@0PiWdHohzPjNnQmr5e7w1DseATXHkvH9ndfE7yLrLf0=.ed25519')),
+        where(author(SSB.id)),
         toPullStream()
       ),
       pull.drain((msg) => {
