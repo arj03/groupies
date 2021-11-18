@@ -162,6 +162,7 @@ const menu = new Vue({
     newGroup: function() {
       const groupKey = crypto.randomBytes(32)
 
+      this.groupTitle = ''
       this.groupKey = groupKey.toString('hex')
       this.groupSaveText = 'Create group'
       this.showGroupEdit = true
@@ -185,7 +186,7 @@ const menu = new Vue({
                 this.showGroupEdit = false
                 this.activeId = groupId
 
-                const group = { key: groupKey, id: groupId }
+                const group = { key: groupKey.toString('hex'), id: groupId }
                 new Vue(
                   chatApp(ssbSingleton, group, getChatFeed, this.editGroupConfig)
                 ).$mount("#app")
