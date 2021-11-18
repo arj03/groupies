@@ -119,13 +119,14 @@ const menu = new Vue({
     dumpDB,
     openGroup: function(group) {
       this.activeGroupId = group.id
-      new Vue(chatApp(pull, ssbSingleton, group, getChatFeed)).$mount("#app")
+      new Vue(chatApp(ssbSingleton, group, getChatFeed, this.editGroupConfig)).$mount("#app")
     },
-    editGroupConfig: function(group) {
+    editGroupConfig: function(group, title) {
       afterGroupSave = () => { this.showGroupEdit = false }
 
       this.groupKey = group.key
       this.groupSaveText = 'Save group config'
+      this.groupTitle = title
       this.showGroupEdit = true
     },
     copyGroupKey: function() {
@@ -182,9 +183,9 @@ const menu = new Vue({
                 this.showGroupEdit = false
                 this.activeGroupId = groupId
 
+                const group = { key: groupKey, id: groupId }
                 new Vue(
-                  chatApp(pull, ssbSingleton,
-                          { key: groupKey, id: groupId }, getChatFeed)
+                  chatApp(ssbSingleton, group, getChatFeed, this.editGroupConfig)
                 ).$mount("#app")
               })
             })

@@ -1,4 +1,6 @@
-module.exports = function (pull, ssbSingleton, group, getChatFeedHelper) {
+module.exports = function (ssbSingleton, group,
+                           getChatFeedHelper, editGroupHelper) {
+  const pull = require('pull-stream')
   let chatFeed = null
 
   function getChatFeed(SSB, cb) {
@@ -15,7 +17,7 @@ module.exports = function (pull, ssbSingleton, group, getChatFeedHelper) {
   return {
     template: `
     <div id="app">
-      <h2>Chat {{ title }}</h2>
+      <h2>Chat {{ title }} <button v-on:click="editGroup" class="clickButton">Edit group</button></h2>
       <input type='text' v-model="message" @keyup.enter="post()">
       <button v-on:click="post">Send</button>
       <div class="chatmessage" v-for="msg in messages">
@@ -60,6 +62,10 @@ module.exports = function (pull, ssbSingleton, group, getChatFeedHelper) {
             })
           }
         )
+      },
+
+      editGroup: function() {
+        editGroupHelper(group, this.title)
       },
       
       load: function() {
