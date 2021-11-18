@@ -53,7 +53,6 @@ module.exports = {
 
     pull(
       SSB.db.query(
-        where(author(SSB.id)),
         toPullStream()
       ),
       pull.drain((msg) => {
