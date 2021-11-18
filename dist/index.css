@@ -20,6 +20,11 @@ body {
   overflow:auto;
 }
 
+.activegroup {
+  font-weight: bold;
+  color: #90EE90
+}
+
 #main {
   margin-left: 13rem;
   padding-left: 1rem;

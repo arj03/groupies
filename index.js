@@ -105,6 +105,8 @@ const menu = new Vue({
       groups: [],
       peers: [],
 
+      activeGroupId: '',
+
       // group dialog
       groupKey: '',
       showGroupEdit: false,
@@ -117,6 +119,7 @@ const menu = new Vue({
   methods: {
     dumpDB,
     openGroup: function(group) {
+      this.activeGroupId = group.id
       new Vue(chatApp(pull, ssbSingleton, group, getChatFeed)).$mount("#app")
     },
     editGroupConfig: function(group) {
@@ -179,7 +182,8 @@ const menu = new Vue({
                 if (err) return console.error(err)
 
                 this.showGroupEdit = false
- 
+                this.activeGroupId = groupId
+
                 new Vue(
                   chatApp(pull, ssbSingleton,
                           { key: groupKey, id: groupId }, getChatFeed)
