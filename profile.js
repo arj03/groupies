@@ -63,28 +63,50 @@ module.exports = function (feedId) {
            <button class="clickButton" v-on:click="deleteFeed">Remove feed &#x2622</button><br>
            <br><br>
          </div>
-         <h2 v-if="friends"><a href="javascript:void(0)" @click="showFriends=!showFriends"><span v-if="showFriends">▼</span><span v-if="!showFriends">►</span>&nbsp;Following ({{ friends.length }})</a></h2>
+         <h2 v-if="friends">
+           <a href="javascript:void(0)" @click="showFriends=!showFriends">
+             <span v-if="showFriends">▼</span>
+             <span v-else>►</span>
+             &nbsp;Following ({{ friends.length }})
+           </a>
+         </h2>
          <div v-if="showFriends" id="follows">
            <div v-for="friend in friends">
              <ssb-profile-link :feed="friend"></ssb-profile-link>
            </div>
          </div>
-         <div style="clear: both;"></div>
-         <h2 v-if="blocked"><a href="javascript:void(0)" @click="showBlocked=!showBlocked"><span v-if="showBlocked">▼</span><span v-if="!showBlocked">►</span>&nbsp;Blocking ({{ blocked.length }})</a></h2>
+         <h2 v-if="blocked">
+           <a href="javascript:void(0)" @click="showBlocked=!showBlocked">
+             <span v-if="showBlocked">▼</span>
+             <span v-else>►</span>
+             &nbsp;
+             Blocking ({{ blocked.length }})
+           </a>
+         </h2>
          <div v-if="showBlocked" id="blocked">
            <div v-for="block in blocked">
              <ssb-profile-link :feed="block"></ssb-profile-link>
            </div>
          </div>
-         <div style="clear: both;"></div>
-         <h2 v-if="followers && followers.length > 0"><a href="javascript:void(0)" @click="showFollowers=!showFollowers"><span v-if="showFollowers">▼</span><span v-if="!showFollowers">►</span>&nbsp;Followers ({{ followers.length }})</a></h2>
+         <h2 v-if="followers && followers.length > 0">
+           <a href="javascript:void(0)" @click="showFollowers=!showFollowers">
+             <span v-if="showFollowers">▼</span>
+             <span v-else>►</span>
+             &nbsp;Followers ({{ followers.length }})
+           </a>
+         </h2>
          <div v-if="followers && followers.length > 0 && showFollowers" id="followers">
            <div v-for="friend in followers">
              <ssb-profile-link :feed="friend"></ssb-profile-link>
            </div>
          </div>
-         <div v-if="followers && followers.length > 0" style="clear: both;"></div>
-         <h2 v-if="blockingUs && blockingUs.length > 0"><a href="javascript:void(0)" @click="showBlockingUs=!showBlockingUs"><span v-if="showBlockingUs">▼</span><span v-if="!showBlockingUs">►</span>&nbsp;Blocking us ({{ blockingUs.length }})</a></h2>
+         <h2 v-if="blockingUs && blockingUs.length > 0">
+           <a href="javascript:void(0)" @click="showBlockingUs=!showBlockingUs">
+             <span v-if="showBlockingUs">▼</span>
+             <span v-else>►</span>
+             &nbsp;Blocking us ({{ blockingUs.length }})
+           </a>
+         </h2>
          <div v-if="blockingUs && blockingUs.length > 0 && showBlockingUs" id="blockingUs">
            <div v-for="friend in blockingUs">
              <ssb-profile-link :feed="friend"></ssb-profile-link>
@@ -145,7 +167,7 @@ module.exports = function (feedId) {
            </div>
          </transition>
        </div>
-       </div>`,
+     </div>`,
 
     data: function() {
       return initialState(this)
