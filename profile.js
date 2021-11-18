@@ -60,7 +60,6 @@ module.exports = function (feedId) {
          <div class="profileButtons" v-else>
            <button class="clickButton" v-on:click="changeFollowStatus">{{ followText }}</button>
            <button class="clickButton" v-on:click="changeBlockStatus">{{ blockText }}</button>
-           <button class="clickButton" v-on:click="deleteFeed">Remove feed &#x2622</button><br>
            <br><br>
          </div>
          <h2 v-if="friends">
@@ -337,21 +336,6 @@ module.exports = function (feedId) {
         }
       },
 
-      deleteFeed: function() {
-        [ err, SSB ] = ssbSingleton.getSSB()
-        if (!SSB || !SSB.db) {
-          alert("Can't delete feed right now.  Database couldn't be locked.  Please make sure you only have one running instance of ssb-browser.")
-          return
-        }
-
-        var self = this
-        SSB.db.deleteFeed(this.feedId, (err) => {
-          if (err) return alert('Failed to remove feed', err)
-
-          this.$router.push({ path: '/public'})
-        })
-      },
-
       updateFollowers: function(err, SSB) {
         var self = this
         var opts = {
@@ -378,7 +362,7 @@ module.exports = function (feedId) {
         }
         SSB.friends.hops(opts, (err, feeds) => {
           var newBlocks = []
-          for(f in feeds) {
+          for (f in feeds) {
             if (Math.round(feeds[f]) == -1)
               newBlocks.push(f)
           }
