@@ -3,7 +3,7 @@ module.exports = function (ssbSingleton, getGroupKeysFeed) {
     template: `
     <div id="app">
       <h2>Add group key</h2>
-      <input type='text' v-model="groupKey" @keyup.enter="addKey()">
+      <input type='text' style='width: 500px;' v-model="groupKey" @keyup.enter="addKey()">
       <button v-on:click="addKey">Add key</button>
     </div>`,
 
@@ -19,8 +19,17 @@ module.exports = function (ssbSingleton, getGroupKeysFeed) {
           (err, SSB) => {
             if (err) return console.error(err)
 
-            getGroupKeysFeed(SSB, (err, keysFeed) => {
+            getGroupKeysFeed(SSB, async (err, keysFeed) => {
               const groupId = this.groupKey.toString('hex') + '.groupies'
+
+              const { where, type, toPromise } = SSB.db.operators
+
+              const existing = (await SSB.db.query(
+                where(type('groupkey')),
+                toPromise()
+              )).filter(msg => msg.value.content.id === groupId)
+
+              if (existing.length !== 0) return alert('Key already added!')
 
               SSB.db.publishAs(keysFeed.keys, {
                 type: 'groupkey',

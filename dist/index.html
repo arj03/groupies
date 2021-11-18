@@ -16,7 +16,7 @@
 
       <b>Groups</b><span style="padding-left: 5px;" class="link" v-on:click="newGroup()" title="Create a new group">🌱</span>
       <ul v-for="group in groups" class="dashed">
-        <li class="link" v-bind:class="{ activegroup: group.id == activeGroupId }">
+        <li class="link" v-bind:class="{ activemenu: group.id == activeId }">
           <span v-on:click="openGroup(group)" title="Open group">{{ group.title }}</span>
         </li>
       </ul>
@@ -25,7 +25,7 @@
 
       <b>Tools</b>
       <ul class="dashed">
-        <li class="link">
+        <li class="link" v-bind:class="{ activemenu: activeId == 'addGroupKey' }">
           <span v-on:click="addGroupKey()" title="Add group key">Add group key</span>
         </li>
         <li class="link">

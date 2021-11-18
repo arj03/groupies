@@ -105,7 +105,7 @@ const menu = new Vue({
       groups: [],
       peers: [],
 
-      activeGroupId: '',
+      activeId: '',
 
       // group dialog
       groupKey: '',
@@ -118,7 +118,7 @@ const menu = new Vue({
   methods: {
     dumpDB,
     openGroup: function(group) {
-      this.activeGroupId = group.id
+      this.activeId = group.id
       new Vue(chatApp(ssbSingleton, group, getChatFeed, this.editGroupConfig)).$mount("#app")
     },
     editGroupConfig: function(group, title) {
@@ -154,6 +154,8 @@ const menu = new Vue({
       })
     },
     addGroupKey: function() {
+      this.activeId = 'addGroupKey'
+
       const addGroupKey = require('./add-group-key')
       new Vue(addGroupKey(ssbSingleton, getGroupKeysFeed)).$mount("#app")
     },
@@ -181,7 +183,7 @@ const menu = new Vue({
                 if (err) return console.error(err)
 
                 this.showGroupEdit = false
-                this.activeGroupId = groupId
+                this.activeId = groupId
 
                 const group = { key: groupKey, id: groupId }
                 new Vue(
@@ -194,6 +196,8 @@ const menu = new Vue({
       }
     },
     openProfile: function() {
+      this.activeId = ''
+
       const profile = require('./profile')
       new Vue(profile(SSB.id)).$mount("#app")
     },

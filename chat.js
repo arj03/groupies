@@ -19,7 +19,7 @@ module.exports = function (ssbSingleton, group,
     <div id="app">
       <h2>Chat {{ title }} <button v-on:click="editGroup" class="clickButton" style="float: right;">Edit group</button></h2>
       <div style="padding-bottom: 1rem;">
-        <input type='text' v-model="message" @keyup.enter="post()">
+        <input type='text' style="width: 400px;" v-model="message" @keyup.enter="post()">
         <button v-on:click="post">Send</button>
       </div>
       <div class="chatmessage" v-for="msg in messages">
