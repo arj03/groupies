@@ -111,8 +111,7 @@ const menu = new Vue({
       groupKey: '',
       showGroupEdit: false,
       groupSaveText: 'Create group',
-      groupTitle: '',
-      groupBGColor: '',
+      groupTitle: ''
     }
   },
 
@@ -145,7 +144,6 @@ const menu = new Vue({
           type: 'groupconfig',
           id: group.id,
           title: this.groupTitle,
-          bgColor: this.groupBGColor,
           recps: [group.id]
         }, (err, msg) => {
           if (err) return console.log(err)
