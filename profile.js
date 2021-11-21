@@ -1,6 +1,5 @@
 module.exports = function (feedId) {
   const ssbSingleton = require('ssb-browser-core/ssb-singleton')
-  const mnemonic = require('ssb-keys-mnemonic')
   
   let initialState = function(self) {
     return {
@@ -20,10 +19,6 @@ module.exports = function (feedId) {
       blocked: [],
       blockingUs: [],
       waitingForBlobURLs: 0,
-
-      showExportKey: false,
-      showImportKey: false,
-      mnemonic: '',
     }
   }
 
@@ -53,9 +48,6 @@ module.exports = function (feedId) {
          </span>
          <div class="profileButtons" v-if="isSelf">
            <button class="clickButton" v-on:click="saveProfile">Save profile</button>
-           <hr />
-           <button class="clickButton" v-on:click="exportKey">Export key</button>
-           <button class="clickButton" v-on:click="showImportKey = true">Import key</button>
          </div>
          <div class="profileButtons" v-else>
            <button class="clickButton" v-on:click="changeFollowStatus">{{ followText }}</button>
@@ -112,59 +104,6 @@ module.exports = function (feedId) {
            </div>
          </div>
          <div v-if="blockingUs && blockingUs.length > 0" style="clear: both;"></div>
-
-         <transition name="modal" v-if="showExportKey">
-           <div class="modal-mask">
-             <div class="modal-wrapper">
-               <div class="modal-container">
-                 <div>
-                   <b>A mnemonic code has been generated from your private feed key.</b>
-                   <div style="padding-top: 10px;">
-                     This code can be used to restore your identity later. Store this somewhere safe.
-                   </div>
-                 </div>
-
-                 <div class="modal-body">
-                   {{ mnemonic }}
-                 </div>
-
-                 <div class="modal-footer">
-                   <button class="modal-default-button clickButton" @click="showExportKey = false">
-                     Close
-                   </button>
-                 </div>
-               </div>
-             </div>
-           </div>
-         </transition>
-
-         <transition name="modal" v-if="showImportKey">
-           <div class="modal-mask">
-             <div class="modal-wrapper">
-               <div class="modal-container">
-                 <div>
-                   <b>Enter mnemonic code below to restore your feed key.</b>
-                   <div style="padding-top: 10px;">
-                     WARNING: this will overwrite your current feed key!
-                   </div>
-                 </div>
-
-                 <div class="modal-body">
-                    <textarea placeholder="Mnemonic code" v-model="mnemonic"></textarea><br>
-                 </div>
-
-                 <div class="modal-footer">
-                    <button class="modal-default-button clickButton" style="margin-left: 20px;" v-on:click="restoreKey">
-                      Restore feed
-                   </button>
-                   <button class="modal-default-button clickButton" @click="showImportKey = false">
-                     Close
-                   </button>
-                 </div>
-               </div>
-             </div>
-           </div>
-         </transition>
        </div>
      </div>`,
 
@@ -228,21 +167,6 @@ module.exports = function (feedId) {
             })
           })
         })
-      },
-
-      exportKey: function() {
-        this.mnemonic = mnemonic.keysToWords(JSON.parse(localStorage["/.groupies/secret"]))
-        this.showExportKey = true
-      },
-
-      restoreKey: function() {
-        const key = mnemonic.wordsToKeys(this.mnemonic)
-        localStorage["/.groupies/secret"] = JSON.stringify(key)
-        this.showImportKey = false
-
-        localStorage["/.groupies/restoreFeed"] = "true"
-
-        alert("Please reload")
       },
 
       saveProfile: function() {
