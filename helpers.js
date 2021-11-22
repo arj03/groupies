@@ -48,6 +48,59 @@ module.exports = {
     )
   },
 
+  replicateSubfeeds: (isLive, cb) => {
+    const { where, type, author, live, toPullStream } = SSB.db.operators
+
+    function replicateMetaFeed(metafeed) {
+      console.log("replicating metafeed", metafeed)
+      // similar to ack self, we must ack own feeds!
+      SSB.ebt.request(metafeed, true)
+
+      pull(
+        SSB.db.query(
+          where(author(metafeed)),
+          isLive ? live({ old: true }) : null,
+          toPullStream()
+        ),
+        pull.drain((msg) => {
+          const { subfeed, feedpurpose } = msg.value.content
+          if (feedpurpose && feedpurpose !== 'main') { // special
+            console.log("replicating subfeed", subfeed)
+            // similar to ack self, we must ack own feeds!
+            SSB.ebt.request(subfeed, true)
+          }
+        })
+      )
+    }
+
+    pull(
+      SSB.db.query(
+        where(type('metafeed/announce')),
+        toPullStream()
+      ),
+      pull.drain((msg) => {
+        const { metafeed } = msg.value.content
+        replicateMetaFeed(metafeed)
+      }, () => {
+        if (isLive) {
+          pull(
+            SSB.db.query(
+              where(type('metafeed/announce')),
+              live({ old: false }),
+              toPullStream()
+            ),
+            pull.drain((msg) => {
+              const { metafeed } = msg.value.content
+              replicateMetaFeed(metafeed)
+            })
+          )
+        }
+
+        if (cb) cb()
+      })
+    )
+  },
+
   dumpDB: () => {
     const { where, author, toPullStream } = SSB.db.operators
 
@@ -56,7 +109,7 @@ module.exports = {
         toPullStream()
       ),
       pull.drain((msg) => {
-        console.log(`author ${msg.value.author}, seq: ${msg.value.sequence}, content: ${JSON.stringify(msg, null, 2)}`)
+        console.log(`author ${msg.value.author}, seq: ${msg.value.sequence}`)
         // , content: ${JSON.stringify(msg.value.content, null, 2)}
       })
     )

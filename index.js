@@ -3,7 +3,8 @@ const pull = require('pull-stream')
 const hkdf = require('futoin-hkdf')
 const crypto = require('crypto')
 
-const { getGroupKeysFeed, getChatFeed, dumpDB } = require('./helpers')
+const { getGroupKeysFeed, getChatFeed,
+        replicateSubfeeds, dumpDB } = require('./helpers')
 const { monkeyPatchBox2Libs } = require('./browser-hack')
 
 function extraModules(secretStack) {
@@ -249,15 +250,6 @@ function setupApp(SSB) {
     })
   )
 
-  // auto connect to room
-  const roomKey = '@oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y=.ed25519'
-  const room = 'wss:between-two-worlds.dk:444~shs:oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y='
-
-  SSB.conn.connect(room, {
-    key: roomKey,
-    type: 'room'
-  }, () => {})
-
   // show connection errors
   pull(
     SSB.conn.hub().listen(),
@@ -275,45 +267,27 @@ function setupApp(SSB) {
     })
   )
 
-  // auto reconnect to room
-  setInterval(() => {
-    if (menu.peers.length === 0) {
+  replicateSubfeeds(true, () => {
+    // timeout to make sure we get all feeds replicated
+    setTimeout(() => {
+      // auto connect to room
+      const roomKey = '@oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y=.ed25519'
+      const room = 'wss:between-two-worlds.dk:444~shs:oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y='
+
       SSB.conn.connect(room, {
         key: roomKey,
         type: 'room'
-      })
-    }
-  }, 1000)
+      }, () => {})
 
-  // find all meta feeds & children and replicate those
-  pull(
-    SSB.db.query(
-      where(type('metafeed/announce')),
-      live({ old: true }),
-      toPullStream()
-    ),
-    pull.drain((msg) => {
-      const { metafeed } = msg.value.content
-      console.log("replicating metafeed", metafeed)
-      // similar to ack self, we must ack own feeds!
-      SSB.ebt.request(metafeed, true)
-
-      // FIXME: this doesn't work on reindex!
-      pull(
-        SSB.db.query(
-          where(author(metafeed)),
-          live({ old: true }),
-          toPullStream()
-        ),
-        pull.drain((msg) => {
-          const { subfeed, feedpurpose } = msg.value.content
-          if (feedpurpose && feedpurpose !== 'main') { // special
-            console.log("replicating subfeed", subfeed)
-            // similar to ack self, we must ack own feeds!
-            SSB.ebt.request(subfeed, true)
-          }
-        })
-      )
-    })
-  )
+      // auto reconnect on fail
+      setInterval(() => {
+        if (menu.peers.length === 0) {
+          SSB.conn.connect(room, {
+            key: roomKey,
+            type: 'room'
+          })
+        }
+      }, 1000)
+    }, 1500)
+  })
 }

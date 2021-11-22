@@ -1,4 +1,6 @@
 module.exports = function (ssbSingleton, getGroupKeysFeed) {
+  const { replicateSubfeeds } = require('./helpers')
+
   return {
     template: `
     <div id="app">
@@ -20,7 +22,7 @@ module.exports = function (ssbSingleton, getGroupKeysFeed) {
             if (err) return console.error(err)
 
             getGroupKeysFeed(SSB, async (err, keysFeed) => {
-              const groupId = this.groupKey.toString('hex') + '.groupies'
+              const groupId = this.groupKey + '.groupies'
 
               const { where, type, toPromise } = SSB.db.operators
 
@@ -33,14 +35,20 @@ module.exports = function (ssbSingleton, getGroupKeysFeed) {
 
               SSB.db.publishAs(keysFeed.keys, {
                 type: 'groupkey',
-                key: this.groupKey.toString('hex'),
+                key: this.groupKey,
                 id: groupId,
                 recps: [SSB.id]
               }, (err, msg) => {
                 if (err) return console.error(err)
 
-                SSB.box2.addGroupKey(groupId, this.groupKey)
-                SSB.db.reindexEncrypted()
+                const groupKey = Buffer.from(this.groupKey, 'hex')
+                SSB.box2.addGroupKey(groupId, groupKey)
+
+                SSB.db.reindexEncrypted(() => {
+                  // live can have problems with reindex
+                  replicateSubfeeds(false)
+                })
+
                 alert('Key added!')
               })
             })
