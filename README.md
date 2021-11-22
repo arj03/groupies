@@ -10,9 +10,11 @@ hop distance. Data is transferred between nodes via a [rooms] server.
 
 ![Screenshot of groupies demo][screenshot]
 
+You can try a [live demo].
+
 [private groups]: https://github.com/ssbc/private-group-spec
 [ssb-browser-core]: https://github.com/arj03/ssb-browser-core
 [meta feeds]: https://github.com/ssb-ngi-pointer/ssb-meta-feeds-spec
 [rooms]: https://github.com/ssb-ngi-pointer/go-ssb-room
 [screenshot]: assets/buttchat.jpg
-
+[live demo]: https://between-two-worlds.dk/groupies/
