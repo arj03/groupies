@@ -1,4 +1,7 @@
 const ssbSingleton = require('ssb-browser-core/ssb-singleton')
+const pull = require('pull-stream')
+
+const feedToMainCache = {}
 
 Vue.component('ssb-profile-link', {
   template: `
@@ -15,21 +18,19 @@ Vue.component('ssb-profile-link', {
   data: function() {
     return {
       componentStillLoaded: false,
-      imgURL: '',
+      imgURL: 'noavatar.svg',
       isBlocked: false,
-      name: ''
+      name: '',
+      mainfeed: ''
     }
   },
 
   methods: {
     renderProfileCallback: function (err, SSB, existingProfile) {
       const self = this
-      const profile = existingProfile || SSB.db.getIndex("aboutSelf").getProfile(self.feed)
+      const profile = existingProfile || SSB.db.getIndex("aboutSelf").getProfile(self.mainfeed)
 
-      // set a default image to be overridden if there is an actual avatar to show.
-      self.imgURL = "noavatar.svg"
-
-      if (self.feed == SSB.id)
+      if (self.mainfeed == SSB.id)
         self.name = 'You'
       else if (profile.name !== '')
         self.name = profile.name
@@ -50,32 +51,63 @@ Vue.component('ssb-profile-link', {
     },
 
     loadBlocking: function (err, SSB) {
-      SSB.friends.isBlocking({ source: SSB.id, dest: self.feed }, (err, result) => {
+      const self = this
+      SSB.friends.isBlocking({ source: SSB.id, dest: self.mainfeed }, (err, result) => {
         if (!err) self.isBlocked = result
       })
     },
 
-    refresh: function() {
-      var self = this
-
-      // set a default image while we wait for an SSB.
-      self.imgURL = "noavatar.svg"
+    load: function() {
+      const self = this
 
       ssbSingleton.getSimpleSSBEventually(
         () => { return self.componentStillLoaded },
         self.loadBlocking
       )
 
-      ssbSingleton.getSSBEventually(
-        -1,
+      ssbSingleton.getSimpleSSBEventually(
         () => { return self.componentStillLoaded },
-        (SSB) => {
-          if (!SSB || !SSB.db) return false
+        self.renderProfileCallback
+      )
+    },
 
-          let profile = SSB.db.getIndex("aboutSelf").getProfile(self.feed)
-          return Object.keys(profile).length > 0
-        },
-        self.renderProfileCallback)
+    refresh: function() {
+      const self = this
+
+      // convert feed to main feed
+      if (feedToMainCache[self.feed]) {
+        self.mainfeed = feedToMainCache[self.feed]
+        self.load()
+      } else {
+        const { where, author, slowEqual, toPullStream } = SSB.db.operators
+
+        pull(
+          SSB.db.query(
+            where(slowEqual('value.content.subfeed', self.feed)),
+            toPullStream()
+          ),
+          pull.collect((err, messages) => {
+            if (err || messages.length == 0) return console.error(err)
+
+            const { metafeed } = messages[0].value.content
+
+            pull(
+              SSB.db.query(
+                where(author(metafeed)),
+                toPullStream()
+              ),
+              pull.filter((msg) => msg.value.content.feedpurpose === 'main'),
+              pull.collect((err, messages) => {
+                if (err || messages.length == 0) return console.error(err)
+
+                self.mainfeed = messages[0].value.content.subfeed
+                feedToMainCache[self.feed] = self.mainfeed
+                self.load()
+              })
+            )
+          })
+        )
+      }
     }
   },
 

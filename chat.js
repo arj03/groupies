@@ -78,35 +78,7 @@ module.exports = function (ssbSingleton, group,
       },
 
       render: async function(err, SSB) {
-        const { where, or, type, live,
-                toPromise, toPullStream } = SSB.db.operators
-
-        const metafeedMsgs = await SSB.db.query(
-          where(
-            or(
-              type('metafeed/add/existing'),
-              type('metafeed/add/derived')
-            )
-          ),
-          toPromise()
-        )
-
-        const metafeeds = {}
-        metafeedMsgs.forEach(msg => {
-          const msgVal = msg.value
-          const content = msgVal.content
-          const metafeed = metafeeds[msgVal.author] || {}
-          const groupId = content.groupId || ''
-          metafeed[content.feedpurpose + groupId] = content.subfeed
-          metafeeds[msgVal.author] = metafeed
-        })
-
-        const chatToMetafeed = {}
-        for (let metafeed in metafeeds) {
-          const chatId = metafeeds[metafeed]['groupchat' + group.id]
-          if (chatId)
-            chatToMetafeed[chatId] = metafeeds[metafeed]
-        }
+        const { where, type, live, toPullStream } = SSB.db.operators
 
         pull(
           SSB.db.query(
@@ -132,10 +104,6 @@ module.exports = function (ssbSingleton, group,
           pull.filter(msg => msg.value.content.id === group.id), // FIXME slow
           pull.drain((msg) => {
             let { timestamp, author, content } = msg.value
-
-            const authorChat = chatToMetafeed[author]
-            if (authorChat)
-              author = authorChat['main']
 
             this.messages.push({
               timestamp: (new Date(timestamp)).toLocaleString(),
