@@ -3,7 +3,10 @@ const pull = require('pull-stream')
 const hkdf = require('futoin-hkdf')
 const crypto = require('crypto')
 
-const { getGroupKeysFeed, getChatFeed,
+const Crut = require('ssb-crut')
+const Overwrite = require('@tangle/overwrite')
+
+const { getGroupKeysFeed, getChatFeed, groupConfigChanges,
         replicateSubfeeds, dumpDB } = require('./helpers')
 const { monkeyPatchBox2Libs } = require('./browser-hack')
 
@@ -11,6 +14,10 @@ function extraModules(secretStack) {
   return secretStack
     .use(require("ssb-meta-feeds"))
     .use(require("ssb-db2-box2"))
+    // crut
+    .use(require('ssb-db2/compat/db'))
+    .use(require('ssb-db2/compat/history-stream'))
+    .use(require('ssb-db2/compat/feedstate'))
     .use({
       init: function (sbot, config) {
         sbot.db.registerIndex(require('ssb-db2/indexes/about-self'))
@@ -39,12 +46,22 @@ let config = {
   }
 }
 
+const spec = {
+  type: 'groupconfig',
+  props: {
+    title: Overwrite()
+  }
+}
+let crut
+
 // setup ssb browser core
 ssbSingleton.setup("/.groupies", config, extraModules)
 
 ssbSingleton.getSimpleSSBEventually(
   (err, SSB) => {
     if (err) return console.error(err)
+
+    crut = new Crut(SSB, spec)
 
     SSB.ebt.registerFormat(require('ssb-ebt/formats/bendy-butt'))
     setupBox2(SSB)
@@ -81,7 +98,9 @@ const menu = new Vue({
     dumpDB,
     openGroup: function(group) {
       this.activeId = group.id
-      new Vue(chatApp(ssbSingleton, group, getChatFeed, this.editGroupConfig)).$mount("#app")
+      const app = chatApp(ssbSingleton, group, crut, getChatFeed,
+                          groupConfigChanges, this.editGroupConfig)
+      new Vue(app).$mount("#app")
     },
     editGroupConfig: function(group, title) {
       afterGroupSave = () => { this.showGroupEdit = false }
@@ -103,16 +122,40 @@ const menu = new Vue({
       getChatFeed(SSB, group, (err, chatFeed) => {
         if (err) return console.error("failed to get chat feed", err)
 
-        SSB.db.publishAs(chatFeed.keys, {
-          type: 'groupconfig',
-          id: group.id,
-          title: this.groupTitle,
-          recps: [group.id]
-        }, (err, msg) => {
-          if (err) return console.log(err)
+        // this assumes that the root config will be available
+        // here be dragons
 
-          afterGroupSave()
-        })
+        const { where, type, toPullStream } = SSB.db.operators
+        pull(
+          SSB.db.query(
+            where(type('groupconfig')),
+            toPullStream()
+          ),
+          pull.filter(msg => {
+            const { recps, tangles } = msg.value.content
+            const correctGroup = recps && recps[0] === group.id
+            const isRoot = tangles && tangles.groupconfig && tangles.groupconfig.root === null
+            return correctGroup && isRoot
+          }),
+          pull.collect((err, msgs) => {
+            if (err) return console.error(err)
+
+            const content = { title: this.groupTitle }
+
+            if (msgs.length > 0) {
+              crut.update(msgs[0].key, content, chatFeed.keys, (err) => {
+                if (err) return console.error(err)
+                else afterGroupSave()
+              })
+            } else {
+              content.recps = [group.id]
+              crut.create(content, chatFeed.keys, (err) => {
+                if (err) return console.error(err)
+                else afterGroupSave()
+              })
+            }
+          })
+        )
       })
     },
     addGroupKey: function() {
@@ -149,9 +192,9 @@ const menu = new Vue({
                 this.activeId = groupId
 
                 const group = { key: groupKey.toString('hex'), id: groupId }
-                new Vue(
-                  chatApp(ssbSingleton, group, getChatFeed, this.editGroupConfig)
-                ).$mount("#app")
+                const app = chatApp(ssbSingleton, group, crut, getChatFeed,
+                                    groupConfigChanges, this.editGroupConfig)
+                new Vue(app).$mount("#app")
               })
             })
           }
@@ -217,8 +260,7 @@ function setupBox2(SSB) {
 function setupApp(SSB) {
   menu.id = SSB.id
 
-  const { where, type, author, slowEqual, live,
-          toPullStream, toCallback } = SSB.db.operators
+  const { where, type, live, toPullStream } = SSB.db.operators
 
   // add groups to menu
   pull(
@@ -234,19 +276,10 @@ function setupApp(SSB) {
       }
       menu.groups.push(group)
 
-      pull(
-        SSB.db.query(
-          where(type('groupconfig')),
-          live({ old: true }),
-          toPullStream()
-        ),
-        pull.filter(msg => {
-          return msg.value.content.id === id
-        }),
-        pull.drain((msg) => {
-          group.title = msg.value.content.title
-        })
-      )
+      groupConfigChanges(SSB, crut, id, (err, record) => {
+        if (!err)
+          group.title = record.states[0].title
+      })
     })
   )
 

@@ -48,6 +48,47 @@ module.exports = {
     )
   },
 
+  groupConfigChanges(SSB, crut, id, cb) {
+    const { where, type, live, toPullStream } = SSB.db.operators
+
+    function isCorrectConfig(msg) {
+      const { recps } = msg.value.content
+      return recps && recps[0] === id
+    }
+
+    function crutRead(msg) {
+      const { tangles } = msg.value.content
+      if (tangles && tangles.groupconfig) {
+        if (tangles.groupconfig.root === null)
+          crut.read(msg.key, cb)
+        else
+          crut.read(tangles.groupconfig.root, cb)
+      }
+    } 
+
+    pull(
+      SSB.db.query(
+        where(type('groupconfig')),
+        toPullStream()
+      ),
+      pull.filter(isCorrectConfig),
+      pull.collect((err, msgs) => {
+        if (msgs.length > 0)
+          crutRead(msgs[0])
+
+        pull(
+          SSB.db.query(
+            where(type('groupconfig')),
+            live({ old: false }),
+            toPullStream()
+          ),
+          pull.filter(isCorrectConfig),
+          pull.drain(crutRead)
+        )        
+      })
+    )
+  },
+
   replicateSubfeeds: (isLive, cb) => {
     const { where, type, author, live, toPullStream } = SSB.db.operators
 

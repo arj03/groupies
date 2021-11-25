@@ -1,5 +1,5 @@
-module.exports = function (ssbSingleton, group,
-                           getChatFeedHelper, editGroupHelper) {
+module.exports = function (ssbSingleton, group, crut, getChatFeedHelper,
+                           groupConfigChanges, editGroupHelper) {
   const pull = require('pull-stream')
   let chatFeed = null
 
@@ -77,23 +77,13 @@ module.exports = function (ssbSingleton, group,
         )
       },
 
-      render: async function(err, SSB) {
+      render: function(err, SSB) {
         const { where, type, live, toPullStream } = SSB.db.operators
 
-        pull(
-          SSB.db.query(
-            where(type('groupconfig')),
-            live({ old: true }),
-            toPullStream()
-          ),
-          pull.filter(msg => {
-            return msg.value.content.id === group.id
-          }),
-          pull.drain((msg) => {
-            this.title = msg.value.content.title
-            document.title = 'Groupies chat - ' + this.title
-          })
-        )
+        groupConfigChanges(SSB, crut, group.id, (err, record) => {
+          if (!err)
+            group.title = record.states[0].title
+        })
 
         pull(
           SSB.db.query(
