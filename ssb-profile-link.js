@@ -79,34 +79,39 @@ Vue.component('ssb-profile-link', {
         self.mainfeed = feedToMainCache[self.feed]
         self.load()
       } else {
-        const { where, author, slowEqual, toPullStream } = SSB.db.operators
-
-        pull(
-          SSB.db.query(
-            where(slowEqual('value.content.subfeed', self.feed)),
-            toPullStream()
-          ),
-          pull.collect((err, messages) => {
-            if (err) return console.error(err)
-            if (messages.length === 0) return
-
-            const { metafeed } = messages[0].value.content
+        ssbSingleton.getSimpleSSBEventually(
+          () => { return self.componentStillLoaded },
+          () => {
+            const { where, author, slowEqual, toPullStream } = SSB.db.operators
 
             pull(
               SSB.db.query(
-                where(author(metafeed)),
+                where(slowEqual('value.content.subfeed', self.feed)),
                 toPullStream()
               ),
-              pull.filter((msg) => msg.value.content.feedpurpose === 'main'),
               pull.collect((err, messages) => {
-                if (err || messages.length == 0) return console.error(err)
+                if (err) return console.error(err)
+                if (messages.length === 0) return
 
-                self.mainfeed = messages[0].value.content.subfeed
-                feedToMainCache[self.feed] = self.mainfeed
-                self.load()
+                const { metafeed } = messages[0].value.content
+
+                pull(
+                  SSB.db.query(
+                    where(author(metafeed)),
+                    toPullStream()
+                  ),
+                  pull.filter((msg) => msg.value.content.feedpurpose === 'main'),
+                  pull.collect((err, messages) => {
+                    if (err || messages.length == 0) return console.error(err)
+
+                    self.mainfeed = messages[0].value.content.subfeed
+                    feedToMainCache[self.feed] = self.mainfeed
+                    self.load()
+                  })
+                )
               })
             )
-          })
+          }
         )
       }
     }
