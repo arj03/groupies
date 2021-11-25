@@ -87,7 +87,8 @@ Vue.component('ssb-profile-link', {
             toPullStream()
           ),
           pull.collect((err, messages) => {
-            if (err || messages.length == 0) return console.error(err)
+            if (err) return console.error(err)
+            if (messages.length === 0) return
 
             const { metafeed } = messages[0].value.content
 
