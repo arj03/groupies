@@ -54,6 +54,16 @@
               <div class="modal-body">
                 Title: <input id="title" type="text" v-model="groupTitle"><br>
                 <button class="clickButton" v-on:click="copyGroupKey()" title="Copy secret group key to clipboard">Copy secret group key to clipboard</Button>
+                <div>
+                  <h2>Room servers</h2>
+                  <form v-on:submit.prevent="addRoomToConfig">
+                    Room address: <input id="room" type="text" style="width: 350px; margin-right: 10px;" v-model="newRoomAddress"><button>Add room</Button>
+                  </form>
+                  <div v-for="(room, index) in rooms" style="padding-top: 10px;">
+                    {{ room }}
+                    <button v-on:click="rooms.splice(index, 1)">Remove</button>
+                  </div>
+                </div>
               </div>
 
               <div class="modal-footer">

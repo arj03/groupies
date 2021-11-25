@@ -5,6 +5,7 @@ const crypto = require('crypto')
 
 const Crut = require('ssb-crut')
 const Overwrite = require('@tangle/overwrite')
+const SimpleSet = require('@tangle/simple-set')
 
 const { getGroupKeysFeed, getChatFeed, groupConfigChanges,
         replicateSubfeeds, dumpDB } = require('./helpers')
@@ -49,7 +50,8 @@ let config = {
 const spec = {
   type: 'groupconfig',
   props: {
-    title: Overwrite()
+    title: Overwrite(),
+    rooms: SimpleSet()
   }
 }
 let crut
@@ -90,7 +92,9 @@ const menu = new Vue({
       groupKey: '',
       showGroupEdit: false,
       groupSaveText: 'Create group',
-      groupTitle: ''
+      groupTitle: '',
+      rooms: [],
+      newRoomAddress: ''
     }
   },
 
@@ -102,12 +106,17 @@ const menu = new Vue({
                           groupConfigChanges, this.editGroupConfig)
       new Vue(app).$mount("#app")
     },
-    editGroupConfig: function(group, title) {
+    addRoomToConfig: function() {
+      this.rooms.push(this.newRoomAddress)
+      this.newRoomAddress = ''
+    },
+    editGroupConfig: function(group, title, rooms) {
       afterGroupSave = () => { this.showGroupEdit = false }
 
       this.groupKey = group.key
       this.groupSaveText = 'Save group config'
       this.groupTitle = title
+      this.rooms = rooms
       this.showGroupEdit = true
     },
     copyGroupKey: function() {
@@ -143,11 +152,35 @@ const menu = new Vue({
             const content = { title: this.groupTitle }
 
             if (msgs.length > 0) {
-              crut.update(msgs[0].key, content, chatFeed.keys, (err) => {
+              crut.read(msgs[0].key, (err, record) => {
                 if (err) return console.error(err)
-                else afterGroupSave()
+
+                const currentRooms = new Set(record.states[0].rooms)
+                const newRooms = new Set(this.rooms)
+
+                const added = []
+                const removed = []
+
+                for (let room of currentRooms)
+                  if (!newRooms.has(room))
+                    removed.push(room)
+
+                for (let room of newRooms)
+                  if (!currentRooms.has(room))
+                    added.push(room)
+
+                content.rooms = {
+                  add: added,
+                  remove: removed
+                }
+
+                crut.update(msgs[0].key, content, chatFeed.keys, (err) => {
+                  if (err) return console.error(err)
+                  else afterGroupSave()
+                })
               })
             } else {
+              content.rooms = this.rooms
               content.recps = [group.id]
               crut.create(content, chatFeed.keys, (err) => {
                 if (err) return console.error(err)
@@ -277,8 +310,16 @@ function setupApp(SSB) {
       menu.groups.push(group)
 
       groupConfigChanges(SSB, crut, id, (err, record) => {
-        if (!err)
-          group.title = record.states[0].title
+        if (!err) {
+          const state = record.states[0]
+          group.title = state.title
+          if (state.rooms.length > 0) {
+            state.rooms.forEach(room => {
+              console.log("connecting to", room)
+              SSB.conn.connect(room, () => {})
+            })
+          }
+        }
       })
     })
   )

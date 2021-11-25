@@ -36,6 +36,7 @@ module.exports = function (ssbSingleton, group, crut, getChatFeedHelper,
     data: function() {
       return {
         title: '',
+        rooms: [],
         message: '',
         messages: [],
         componentStillLoaded: false,
@@ -67,7 +68,7 @@ module.exports = function (ssbSingleton, group, crut, getChatFeedHelper,
       },
 
       editGroup: function() {
-        editGroupHelper(group, this.title)
+        editGroupHelper(group, this.title, this.rooms)
       },
       
       load: function() {
@@ -82,9 +83,10 @@ module.exports = function (ssbSingleton, group, crut, getChatFeedHelper,
 
         groupConfigChanges(SSB, crut, group.id, (err, record) => {
           if (!err) {
-            const title = record.states[0].title
-            this.title = title
-            document.title = 'Groupies chat - ' + title
+            const state = record.states[0]
+            this.title = state.title
+            document.title = 'Groupies chat - ' + state.title
+            this.rooms = state.rooms
           }
         })
 
