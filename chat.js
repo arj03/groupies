@@ -81,8 +81,11 @@ module.exports = function (ssbSingleton, group, crut, getChatFeedHelper,
         const { where, type, live, toPullStream } = SSB.db.operators
 
         groupConfigChanges(SSB, crut, group.id, (err, record) => {
-          if (!err)
-            group.title = record.states[0].title
+          if (!err) {
+            const title = record.states[0].title
+            this.title = title
+            document.title = 'Groupies chat - ' + title
+          }
         })
 
         pull(
