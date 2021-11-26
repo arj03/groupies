@@ -34,8 +34,8 @@ following/blocking. `add-group-key.js` and `chat.js` are the only
 application specific components and can be easily replaced with any
 other application you can think of. The application makes use of
 [ssb-crut] to make it really easy to work with multiple writers to a
-shared data structure such as the group configuration. Lastly there is
-the html and css that can be found in dist/.
+shared data structure such as the group configuration. Lastly the html
+and css can be found in dist/.
 
 [private groups]: https://github.com/ssbc/private-group-spec
 [ssb-browser-core]: https://github.com/arj03/ssb-browser-core
