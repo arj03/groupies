@@ -3,57 +3,18 @@ const pull = require('pull-stream')
 const hkdf = require('futoin-hkdf')
 const crypto = require('crypto')
 
-const Crut = require('ssb-crut')
-const Overwrite = require('@tangle/overwrite')
-const SimpleSet = require('@tangle/simple-set')
-
-const { getGroupKeysFeed, getChatFeed, groupConfigChanges,
-        replicateSubfeeds, dumpDB } = require('./helpers')
+const {
+  getGroupKeysFeed,
+  getChatFeed,
+  groupConfigChanges,
+  replicateSubfeeds,
+  dumpDB
+} = require('./helpers')
 const { monkeyPatchBox2Libs } = require('./browser-hack')
+const { config, extraModules } = require('./ssb-config')
 
-function extraModules(secretStack) {
-  return secretStack
-    .use(require("ssb-meta-feeds"))
-    .use(require("ssb-db2-box2"))
-    // crut
-    .use(require('ssb-db2/compat/db'))
-    .use(require('ssb-db2/compat/history-stream'))
-    .use(require('ssb-db2/compat/feedstate'))
-    .use({
-      init: function (sbot, config) {
-        sbot.db.registerIndex(require('ssb-db2/indexes/about-self'))
-      }
-    })
-}
-
-let config = {
-  connections: {
-    incoming: {
-      tunnel: [{ scope: 'public', transform: 'shs' }]
-    },
-    outgoing: {
-      ws: [{ transform: 'shs' }],
-      tunnel: [{ transform: 'shs' }]
-    }
-  },
-  conn: {
-    populatePubs: false
-  },
-  ebt: {
-    logging: false
-  },
-  blobs: {
-    max: 10 * 1024 * 1024
-  }
-}
-
-const spec = {
-  type: 'groupconfig',
-  props: {
-    title: Overwrite(),
-    rooms: SimpleSet()
-  }
-}
+const Crut = require('ssb-crut')
+const { spec } = require('./group-config-spec')
 let crut
 
 // setup ssb browser core
@@ -102,6 +63,7 @@ const menu = new Vue({
     dumpDB,
     openGroup: function(group) {
       this.activeId = group.id
+
       const app = chatApp(ssbSingleton, group, crut, getChatFeed,
                           groupConfigChanges, this.editGroupConfig)
       new Vue(app).$mount("#app")
@@ -131,8 +93,13 @@ const menu = new Vue({
       getChatFeed(SSB, group, (err, chatFeed) => {
         if (err) return console.error("failed to get chat feed", err)
 
-        // this assumes that the root config will be available
+        // this assumes that the root config msg will be available
         // here be dragons
+
+        const crutWrite = new Crut(SSB, spec, {
+          feedId: chatFeed.keys.id,
+          publish: (content, cb) => SSB.db.publishAs(chatFeed.keys, content, cb)
+        })
 
         const { where, type, toPullStream } = SSB.db.operators
         pull(
@@ -174,17 +141,20 @@ const menu = new Vue({
                   remove: removed
                 }
 
-                crut.update(msgs[0].key, content, chatFeed.keys, (err) => {
+                crutWrite.update(msgs[0].key, content, (err) => {
                   if (err) return console.error(err)
-                  else afterGroupSave()
+
+                  afterGroupSave()
                 })
               })
             } else {
-              content.rooms = this.rooms
+              content.rooms = { add: this.rooms }
               content.recps = [group.id]
-              crut.create(content, chatFeed.keys, (err) => {
+
+              crutWrite.create(content, (err) => {
                 if (err) return console.error(err)
-                else afterGroupSave()
+
+                afterGroupSave()
               })
             }
           })

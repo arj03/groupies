@@ -13,10 +13,11 @@
   "author": "Anders Rune Jensen <arj03@protonmail.ch>",
   "license": "AGPL-3.0",
   "dependencies": {
-    "@tangle/simple-set": "^2.1.0",
-    "ssb-browser-core": "^13.0.0",
-    "ssb-crut": "git+https://gitlab.com/ahau/lib/ssb-crut/#metafeeds",
-    "ssb-db2-box2": "^0.5.0",
+    "@tangle/overwrite": "^3.0.0",
+    "@tangle/simple-set": "^3.0.0",
+    "ssb-browser-core": "^13.0.6",
+    "ssb-crut": "^4.0.0",
+    "ssb-db2-box2": "^0.6.0",
     "ssb-meta-feeds": "^0.28.0",
     "vue": "^2.6.14"
   },
