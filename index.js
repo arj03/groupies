@@ -46,6 +46,7 @@ const menu = new Vue({
       id: '',
       groups: [],
       peers: [],
+      stagedPeers: [],
 
       activeId: '',
 
@@ -311,12 +312,19 @@ function setupApp(SSB) {
     })
   )
 
+  pull(
+    SSB.conn.stagedPeers(),
+    pull.drain((entries) => {
+      menu.stagedPeers = entries.filter(([, x]) => !!x.key).map(([address, data]) => ({ address, data }))
+    })
+  )
+
   replicateSubfeeds(true, () => {
     // timeout to make sure we get all feeds replicated
     setTimeout(() => {
       // auto connect to room
-      const roomKey = '@oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y=.ed25519'
-      const room = 'wss:between-two-worlds.dk:444~shs:oPnjHuBpFNG+wXC1dzmdzvOO30mVNYmZB778fq3bn3Y='
+      const roomKey = '@Px7ZxMT4mtpqiNH+PHyao9+o0RdQ/nzU5qznf7WMNIE=.ed25519'
+      const room = 'wss:between-two-worlds.dk:443~shs:Px7ZxMT4mtpqiNH+PHyao9+o0RdQ/nzU5qznf7WMNIE='
 
       SSB.conn.connect(room, {
         key: roomKey,

@@ -40,6 +40,13 @@
         <ssb-profile-link :feed="peer.data.key"></ssb-profile-link>
       </div>
 
+      <br>
+
+      <b>Staged peers</b>
+      <div v-for="peer in stagedPeers">
+        <ssb-profile-link :feed="peer.data.key"></ssb-profile-link>
+      </div>
+
       <transition name="modal" v-if="showGroupEdit">
         <div class="modal-mask">
           <div class="modal-wrapper">
