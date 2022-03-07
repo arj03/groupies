@@ -20,11 +20,13 @@ following files:
    61 add-group-key.js
    29 browser-hack.js
   125 chat.js
+   12 group-config-spec.js
   158 helpers.js
-  367 index.js
+  345 index.js
   372 profile.js
+   37 ssb-config.js
   136 ssb-profile-link.js
- 1248 total
+ 1275 total
 ```
 
 `browser-hack.js`, `helpers.js` and `index.js` represents the
@@ -42,5 +44,5 @@ and css can be found in dist/.
 [meta feeds]: https://github.com/ssb-ngi-pointer/ssb-meta-feeds-spec
 [rooms]: https://github.com/ssb-ngi-pointer/go-ssb-room
 [screenshot]: assets/buttchat.jpg
-[live demo]: https://between-two-worlds.dk/groupies/
+[live demo]: https://groupies.between-two-worlds.dk/
 [ssb-crut]: https://gitlab.com/ahau/lib/ssb-crut
